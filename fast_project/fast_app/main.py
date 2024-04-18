@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from fast_app.api import ping, summaries
 from fast_app.db import init_db
 
-
 log = logging.getLogger("uvicorn")
 
 

@@ -1,0 +1,32 @@
+FROM python:latest
+
+RUN mkdir -p /home/fast_app
+
+RUN addgroup --system fast_app && adduser --system --group fast_app
+
+ENV HOME=/home/fast_app
+ENV APP_HOME=/home/fast_app/web
+RUN mkdir $APP_HOME
+WORKDIR $APP_HOME
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV ENVIRONMENT prod
+ENV TESTING 0
+
+RUN apt-get update \
+ && apt-get -y install netcat-traditional gcc postgresql \
+ && apt-get clean
+
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+RUN pip install "uvicorn[standard]"
+
+COPY . .
+
+RUN chown -R fast_app:fast_app $APP_HOME
+
+USER fast_app
+
+CMD gunicorn --bind 0.0.0.0:$PORT fast_app.main:app -k uvicorn.workers.UvicornWorker

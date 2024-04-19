@@ -76,5 +76,7 @@ jobs:
             - name: Black
               run: docker exec fastapi-tdd python -m black . --check
 
-            - name: isort
-              run: docker exec fastapi-tdd python -m isort . --check-only
+            - name: Ruff
+              uses: chartboost/ruff-action@v1
+              with:
+                args: 'format --check'

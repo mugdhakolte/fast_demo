@@ -1,5 +1,7 @@
 # Fast Demo Project
 
+[![Continuous Integration and Delivery](https://github.com/mugdhakolte/fast_demo/actions/workflows/main.yml/badge.svg)](https://github.com/mugdhakolte/fast_demo/actions/workflows/main.yml)
+
 This project describes full project of FastAPI with RestAPI, Tortoise ORM, Testing, Deployment and CI/CD.
 
 

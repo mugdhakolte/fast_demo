@@ -3,10 +3,15 @@ from datetime import datetime, timezone
 
 import pytest
 
-from fast_app.api import crud
+from fast_app.api import crud, summaries
 
 
 def test_create_summary(test_app, monkeypatch):
+    def mock_generate_summary(summary_id, url):
+        return None
+
+    monkeypatch.setattr(summaries, "generate_summary", mock_generate_summary)
+
     test_request_payload = {"url": "https://koltemugdha.wordpress.com/"}
     test_response_payload = {"id": 1, "url": "https://koltemugdha.wordpress.com/"}
 

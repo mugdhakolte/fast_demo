@@ -4,8 +4,7 @@ from newspaper import Article
 from fast_app.models.tortoise import TextSummary
 
 
-async def generate_summary(summary_id: int, url: str) -> str:
-
+async def generate_summary(summary_id: int, url: str) -> None:
     article = Article(url)
     article.download()
     article.parse()

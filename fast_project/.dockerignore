@@ -1,4 +1,4 @@
 env
 .dockerignore
 Dockerfile
-Dockerfile.prod
+fast_project/Dockerfile.prod.old

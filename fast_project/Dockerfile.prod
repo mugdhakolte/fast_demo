@@ -1,3 +1,28 @@
+## BUILDER ##
+
+FROM python:latest as builder
+
+RUN apt-get update \
+  && apt-get -y install netcat-traditional gcc postgresql \
+  && apt-get clean
+
+WORKDIR /usr/src/fast_app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/fast_app/wheels -r requirements.txt
+
+COPY . /usr/src/fast_app/
+RUN pip install black flake8 isort
+RUN flake8 --exclude=venv, migrations .
+RUN black . --check
+RUN isort . --check-only
+
+## FINAL ##
+
 FROM python:latest
 
 RUN mkdir -p /home/fast_app
@@ -5,9 +30,10 @@ RUN mkdir -p /home/fast_app
 RUN addgroup --system fast_app && adduser --system --group fast_app
 
 ENV HOME=/home/fast_app
-ENV APP_HOME=/home/fast_app/web
-RUN mkdir $APP_HOME
-WORKDIR $APP_HOME
+ENV FAST_APP_HOME=/home/fast_app/web
+
+RUN mkdir $FAST_APP_HOME
+WORKDIR $FAST_APP_HOME
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -15,17 +41,19 @@ ENV ENVIRONMENT prod
 ENV TESTING 0
 
 RUN apt-get update \
- && apt-get -y install netcat-traditional gcc postgresql \
- && apt-get clean
+  && apt-get -y install netcat-traditional gcc postgresql \
+  && apt-get clean
 
+
+COPY --from=builder /usr/src/fast_app/wheels /wheels
+COPY --from=builder /usr/src/fast_app/requirements.txt .
 RUN pip install --upgrade pip
-COPY ./requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache /wheels/*
 RUN pip install "uvicorn[standard]"
 
 COPY . .
 
-RUN chown -R fast_app:fast_app $APP_HOME
+RUN chown -R fast_app:fast_app $FAST_APP_HOME
 
 USER fast_app
 

@@ -1,0 +1,9 @@
+black
+flake8
+isort
+pytest
+pytest-cov
+pytest-xdist
+mypy-extensions
+
+-r requirements.txt

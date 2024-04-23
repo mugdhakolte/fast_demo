@@ -53,7 +53,7 @@ RUN pip install "uvicorn[standard]"
 
 COPY . .
 
-RUN chown -R fast_app:fast_app $APP_HOME
+RUN chown -R fast_app:fast_app $HOME
 
 USER fast_app
 

@@ -3,7 +3,8 @@ name: Continuous Integration and Delivery
 on: [ push ]
 
 env:
-  IMAGE: ghcr.io/$(echo $GITHUB_REPOSITORY | tr '[A-Z]' '[a-z]')/summarizer
+  IMAGE: ghcr.io/${{ github.repository }}/summarizer
+  USER: fast_app
 
 jobs:
   build:
@@ -15,31 +16,33 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+
       - name: Log in to Github Packages
-        run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_ACTOR} --password-stdin ghcr.io
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull image
-        run: |
-          docker pull ${{ env.IMAGE }}-builder:latest || true
-          docker pull ${{ env.IMAGE }}-final:latest || true
-      - name: Build Image
-        run: |
-          docker build \
-          --target builder \
-          --cache-from ${{ env.IMAGE }}-builder:latest \
-          --tag ${{ env.IMAGE }}-builder:latest \
-          --file ./fast_project/Dockerfile.prod \
-          "./fast_project"
-          docker build \
-          --cache-from ${{ env.IMAGE }}-final:latest \
-          --tag ${{ env.IMAGE }}-final:latest \
-          --file ./fast_project/Dockerfile.prod \
-          "./fast_project"
-      - name: Push image
-        run: |
-          docker push ${{ env.IMAGE }}-builder:latest
-          docker push ${{ env.IMAGE }}-final:latest
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push builder Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./fast_project
+          file: ./fast_project/Dockerfile.prod
+          push: true
+          tags: ${{ env.IMAGE }}-builder:latest
+          cache-from: type=registry,ref=${{ env.IMAGE }}-builder:latest
+          cache-to: type=inline
+
+      - name: Build and push final Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./fast_project
+          file: ./fast_project/Dockerfile.prod
+          push: true
+          tags: ${{ env.IMAGE }}-final:latest
+          cache-from: type=registry,ref=${{ env.IMAGE }}-final:latest
+          cache-to: type=inline
 
   test:
     name: Test docker Image
@@ -51,27 +54,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-      - name: Log in Github Packages
-        run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_ACTOR} --password-stdin ghcr.io
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull image
-        run: |
-          docker pull ${{ env.IMAGE }}-builder:latest || true
-          docker pull ${{ env.IMAGE }}-final:latest || true
-      - name: Build image
-        run: |
-          docker build \
-            --target builder \
-            --cache-from ${{ env.IMAGE }}-builder:latest \
-            --tag ${{ env.IMAGE }}-builder:latest \
-            --file ./fast_project/Dockerfile.prod \
-            "./fast_project"
-          docker build \
-            --cache-from ${{ env.IMAGE }}-final:latest \
-            --tag ${{ env.IMAGE }}-final:latest \
-            --file ./fast_project/Dockerfile.prod \
-            "./fast_project"
+
+      - name: Log in to Github Packages
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push builder Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./fast_project
+          file: ./fast_project/Dockerfile.prod
+          push: true
+          tags: ${{ env.IMAGE }}-builder:latest
+          cache-from: type=registry,ref=${{ env.IMAGE }}-builder:latest
+          cache-to: type=inline
+
+      - name: Build and push final Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./fast_project
+          file: ./fast_project/Dockerfile.prod
+          push: true
+          tags: ${{ env.IMAGE }}-final:latest
+          cache-from: type=registry,ref=${{ env.IMAGE }}-final:latest
+          cache-to: type=inline
+
       - name: Run container
         run: |
           docker run \
@@ -83,7 +93,7 @@ jobs:
             -e DATABASE_TEST_URL=sqlite://sqlite.db \
             -p 5003:8765 \
             ${{ env.IMAGE }}-final:latest
-          
+
       - name: Install requirements
         run: docker exec fastapi-tdd pip install black==24.4.0 flake8==7.0.0 isort==5.13.2 pytest==8.1.1
 
